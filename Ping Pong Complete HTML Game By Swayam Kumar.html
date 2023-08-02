@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ping Pong Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f0f0f0;
+    }
+    #game-container {
+      position: relative;
+    }
+    canvas {
+      background: #fff;
+      border: 1px solid #000;
+    }
+    h1 {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      color: black;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>Made By Swayam Kumar</h1>
+    <canvas id="pingPongCanvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("pingPongCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Set canvas size based on window dimensions
+    canvas.width = window.innerWidth * 0.8;
+    canvas.height = window.innerHeight * 0.8;
+
+    // Paddle variables
+    const paddleHeight = 100;
+    const paddleWidth = 10;
+    const paddleSpeed = 5;
+    let paddle1Y = canvas.height / 2 - paddleHeight / 2;
+    let paddle2Y = canvas.height / 2 - paddleHeight / 2;
+
+    // Ball variables
+    const ballRadius = 10;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 5;
+    let ballSpeedY = 5;
+
+    // Scoring variables
+    let player1Score = 0;
+    let player2Score = 0;
+
+    // Countdown variables
+    const countdownDuration = 3; // Countdown duration in seconds
+    let countdown = countdownDuration;
+    let gameStarted = false;
+
+    // Middle line variables
+    const middleLineWidth = 2;
+
+    // Function to draw everything on the canvas
+    function drawEverything() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw paddles
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, paddle1Y, paddleWidth, paddleHeight);
+      ctx.fillRect(canvas.width - paddleWidth, paddle2Y, paddleWidth, paddleHeight);
+
+      // Draw middle line
+      ctx.fillStyle = "#000";
+      for (let i = 0; i < canvas.height; i += 40) {
+        ctx.fillRect(canvas.width / 2 - middleLineWidth / 2, i, middleLineWidth, 20);
+      }
+
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+
+      // Draw scores
+      ctx.font = "20px Arial";
+      ctx.fillText("Player 1: " + player1Score, 100, 30);
+      ctx.fillText("Player 2: " + player2Score, canvas.width - 200, 30);
+
+      // Draw countdown
+      if (!gameStarted) {
+        ctx.font = "40px Arial";
+        ctx.fillText(countdown, canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    // Function to update the game state
+    function update() {
+      if (!gameStarted) {
+        if (countdown > 0) {
+          countdown -= 1;
+        } else {
+          gameStarted = true;
+        }
+      } else {
+        // Move the ball
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+
+        // Ball collision with top and bottom walls
+        if (ballY - ballRadius < 0 || ballY + ballRadius > canvas.height) {
+          ballSpeedY *= -1;
+        }
+
+        // Ball collision with paddles
+        if (ballX - ballRadius < paddleWidth) {
+          if (ballY > paddle1Y && ballY < paddle1Y + paddleHeight) {
+            // Calculate the bounce angle based on where the ball hits the paddle
+            const relativeY = ballY - (paddle1Y + paddleHeight / 2);
+            ballSpeedX = Math.abs(ballSpeedX); // Ensure the ball moves to the right
+            ballSpeedY = relativeY * 0.35; // Adjust the bounce angle
+
+            // Increase ball speed after hitting the paddle
+            ballSpeedX *= 1.1;
+            ballSpeedY *= 1.1;
+          } else {
+            player2Score++;
+            resetBall();
+          }
+        } else if (ballX + ballRadius > canvas.width - paddleWidth) {
+          if (ballY > paddle2Y && ballY < paddle2Y + paddleHeight) {
+            // Calculate the bounce angle based on where the ball hits the paddle
+            const relativeY = ballY - (paddle2Y + paddleHeight / 2);
+            ballSpeedX = -Math.abs(ballSpeedX); // Ensure the ball moves to the left
+            ballSpeedY = relativeY * 0.35; // Adjust the bounce angle
+
+            // Increase ball speed after hitting the paddle
+            ballSpeedX *= 1.1;
+            ballSpeedY *= 1.1;
+          } else {
+            player1Score++;
+            resetBall();
+          }
+        }
+
+        // AI for player 2
+        const paddle2YCenter = paddle2Y + paddleHeight / 2;
+        if (paddle2YCenter < ballY) {
+          paddle2Y += paddleSpeed;
+        } else {
+          paddle2Y -= paddleSpeed;
+        }
+      }
+
+      drawEverything();
+      requestAnimationFrame(update);
+    }
+
+    // Function to reset the ball after a score
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = Math.random() < 0.5 ? 5 : -5;
+      ballSpeedY = Math.random() < 0.5 ? 5 : -5;
+      gameStarted = false;
+      countdown = countdownDuration;
+    }
+
+    // Mouse event handler
+    canvas.addEventListener("mousemove", (evt) => {
+      const mousePos = calculateMousePos(evt);
+      paddle1Y = mousePos.y - paddleHeight / 2;
+    });
+
+    function calculateMousePos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const root = document.documentElement;
+      const mouseX = evt.clientX - rect.left - root.scrollLeft;
+      const mouseY = evt.clientY - rect.top - root.scrollTop;
+      return {
+        x: mouseX,
+        y: mouseY,
+      };
+    }
+
+    // Touch event handlers
+    canvas.addEventListener("touchstart", (evt) => {
+      evt.preventDefault();
+    });
+
+    canvas.addEventListener("touchmove", (evt) => {
+      evt.preventDefault();
+      const touchY = evt.touches[0].clientY - canvas.getBoundingClientRect().top;
+      paddle1Y = touchY - paddleHeight / 2;
+    });
+
+    // Main game loop
+    update();
+
+  </script>
+</body>
+</html>
